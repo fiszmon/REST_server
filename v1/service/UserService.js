@@ -27,8 +27,7 @@ exports.addUser = function(mysql_conn, login,password) {
             reject({type: "database_err", data: err, status_code: 500});
           else{
             let userId = result.insertId;
-            console.log("user added\n");
-            resolve({type: "success", data: new userModels.ShortUser(userId, login), status_code: 204});
+            resolve({type: "success", data: new userModels.ShortUser(userId, login), status_code: 201});
           }
         });
       }
@@ -116,12 +115,12 @@ exports.destroyUser = function(id, mysql_conn) {
  **/
 exports.getUser = function(id, mysql_conn) {
   return new Promise(function(resolve, reject) {
-    let query = `SELECT * FROM user WHERE ID = ${id}`;
+    let query = `SELECT * FROM user WHERE ID = ` + id;
     mysql_conn.query(query, function (err, result) {
-      if (err)
+      if (err) {
         reject({type: "database_err", data: err, status_code: 500});
-      else{
-        resolve({type:"success", data: new userModels.User(result.id, result.name, result.token), status_code: 204});
+      }else{
+        resolve({type:"success", data: new userModels.User(result[0].ID, result[0].LOGIN, result[0].TOKEN), status_code: 200});
       }
     });
   });
@@ -168,7 +167,7 @@ exports.getUsers = function(offset=0, limit=20, mysql_conn) {
         let users = {items:[]};
         for(let i=0;i<limit;i++)
           users.items.push(new userModels.ShortUser(result[i].ID, result[i].LOGIN));
-        return resolve({type:"success", data: users, status_code: 204});
+        return resolve({type:"success", data: users, status_code: 200});
       }
     });
   });
@@ -195,73 +194,86 @@ exports.loginWithUser = function(name,password) {
  * password String new password (optional)
  * returns user
  **/
-exports.updateUser = function(mysql_conn, id,oldPassword="",name="", newPassword="") {
-  return new Promise(function(resolve, reject) {
-    let exists = CheckIfLoginExists(mysql_conn, name, id);
-    if(!exists[0])
-      return reject(exists[1]);
+exports.updateUser = async function(mysql_conn, id,oldPassword="",name="", newPassword="") {
+  if((name===""&&newPassword==="")||oldPassword==="")
+    return new Promise(function(resolve, reject) {reject({type: "user_err", data: "Empty password", status_code: 400})});
 
-    let passwd = CheckIsCorrectPassword(mysql_conn, oldPassword);
-    if(!passwd[0])
-        return reject(passwd[1]);
+  let promise = null;
+  await CheckIfLoginExists(mysql_conn, name, id)
+      .then(async function (result) {
+        console.log("out login");
+      })
+      .catch(function (result) {
+          promise = new Promise(function(resolve, reject) {reject(result[1])});
+      });
 
-    let query = `UPDATE user SET `;
-    if(!(name===""&&newPassword==="")){
-      query+=`PASSWORD=${PasswordHashService.generate(newPassword)} ` +
-        `LOGIN=${name} `;
-    }else if(name===""&&newPassword===""){
-       return reject({type: "user_err", data: "Empty arguments", status_code: 400});
-    }else if(!(name==="")){
-      query+= `LOGIN=${name} `;
-    }else if (newPassword===""){
-      query+=`PASSWORD=${PasswordHashService.generate(newPassword)} `;
-    }
-    query+=`WHERE ID=${id}`;
-    mysql_conn.query(query, function (err, result) {
+  if(promise != null)
+    return promise;
+
+  await CheckIsCorrectPassword(mysql_conn, id, oldPassword).then(async function (result) {
+    console.log(result);
+    promise = new Promise(async function(resolve, reject) {
+      let query = `UPDATE user SET `;
+      if(name!==""){
+        query+= `LOGIN='${name}' `;
+      }else if (newPassword!==""){
+        query+=`PASSWORD='${PasswordHashService.generate(newPassword)}' `;
+      }
+      query+=`WHERE ID=${id}`;
+      await mysql_conn.query(query, async function (err, result) {
+        if (err)
+          return reject({type: "database_err", data: err, status_code: 500});
+        else{
+          query = `SELECT * FROM user WHERE ID=${id}`;
+          await mysql_conn.query(query, function (err, result) {
+            if (err)
+              return reject({type: "database_err", data: err, status_code: 500});
+            else{
+              return resolve({type: "success", data: new userModels.ShortUser(id, result[0].LOGIN), status_code: 200});
+            }
+          });
+        }
+      });
+    });
+    console.log("out pass");
+  }).catch(function (result) {
+    promise = new Promise(function(resolve, reject) {reject(result[1])});
+  });
+
+  console.log("out main");
+  return promise;
+};
+
+function CheckIfLoginExists(mysql_conn,name, id=-1) {
+  return new Promise(async function(resolve, reject) {
+    let query = `SELECT * FROM user WHERE LOGIN ='${name}'` + (id!=-1?` AND NOT ID=${id};`:';');
+    await mysql_conn.query(query, function (err, result) {
       if (err)
-        return reject({type: "database_err", data: err, status_code: 500});
-      else{
-        query = `SELECT * FROM user WHERE ID=${id}`;
-        mysql_conn.query(query, function (err, result) {
-          if (err)
-            return reject({type: "database_err", data: err, status_code: 500});
-          else{
-            console.log("user added\n");
-            return resolve({type: "success", data: new userModels.ShortUser(id, result.name), status_code: 204});
-          }
-        });
+        reject( [false, {type: "database_err", data: err, status_code: 500}]);
+      else {
+        if (result.length > 0)
+          reject([false, {type: "user_exists", data: "Login exists in database", status_code: 409}]);
+        else
+          resolve([true, {}]);
       }
     });
   });
 }
 
-function CheckIfLoginExists(mysql_conn,name, id=-1, callback) {
-  let query = `SELECT * FROM user WHERE LOGIN ='${name}'` + (id!=-1?` AND NOT ID=${id};`:';');
-  var r =mysql_conn.query(query, function (err, result) {
-    if (err)
-      callback( [false, {type: "database_err", data: err, status_code: 500}]);
-    else {
-      if (result.length > 0)
-        callback([false, {type: "user_exists", data: "Login exists in database", status_code: 409}]);
-      else
-        callback([true, {}]);
-    }
-  });
-}
-
-function CheckIsCorrectPassword(mysql_conn, id, password, callback) {
-  let query = `SELECT PASSWORD FROM user WHERE ID = ${id}`;
-
-  mysql_conn.query(query, function (err, result) {
-    if (err)
-      callback( [false, {type: "database_err", data: err, status_code: 500}]);
-    else {
-      if (result.length === 0)
-        callback(false, {type: "user_not_exists", data: "User with specified id not exists", status_code: 404});
-      if(PasswordHashService.verify(password, result.password))
-        callback( [true, {}]);
-      else
-        callback (false, {type: "wrong_password", data: "Wrong password", status_code: 400});
-    }
+function CheckIsCorrectPassword(mysql_conn, id, password) {
+  return new Promise(async function(resolve, reject) {
+    let query = `SELECT PASSWORD FROM user WHERE ID = ${id}`;
+      await mysql_conn.query(query, function (err, result) {
+        if (err)
+          reject ([false, {type: "database_err", data: err, status_code: 500}]);
+        else {
+          if (result.length === 0)
+            reject (false, {type: "user_not_exists", data: "User with specified id not exists", status_code: 404});
+          if (PasswordHashService.verify(password, result[0].PASSWORD))
+            resolve ([true, {}]);
+          else
+            reject(false, {type: "wrong_password", data: "Wrong password", status_code: 400});
+        }
+      });
   });
 }

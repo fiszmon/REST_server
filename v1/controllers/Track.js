@@ -3,9 +3,9 @@
 const TrackService = require('../service/TrackService');
 
 module.exports = {
-  getTrack: function getTrack (req, res, token) {
+  getTrack: async function getTrack (req, res, token) {
     let id = req.params.id;
-    TrackService.getTrack(id, token)
+    await TrackService.getTrack(id, token)
         .then(function (response) {
           res.statusCode = 200;
           res.send(response);
@@ -15,10 +15,10 @@ module.exports = {
           res.send(response);
         });
   },
-  getTracks: function getTracks (req, res, token) {
+  getTracks: async function getTracks (req, res, token) {
     let limit = req.params.limit;
     let search = req.params.search;
-    TrackService.getTracks(limit, search, token)
+    await TrackService.getTracks(limit, search, token)
         .then(function (response) {
           res.statusCode = 200;
           res.send(response);

@@ -104,7 +104,7 @@ function Initialize(){
         UserController.getUser(req, res, mysql_con);
     });
 
-    app.post('/v1'+userPath+'/:id', function (req, res) {
+    app.put('/v1'+userPath+'/:id', function (req, res) {
         UserController.updateUser(req, res, mysql_con);
     });
 

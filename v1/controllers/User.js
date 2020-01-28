@@ -3,10 +3,10 @@
 let UserService = require('../service/UserService');
 
 module.exports = {
-    addUser: function addUser(req, res, mysql_conn) {
+    addUser: async function addUser(req, res, mysql_conn) {
         var login = req.query.login;
         var password = req.query.password;
-        UserService.addUser(mysql_conn, login, password)
+        await UserService.addUser(mysql_conn, login, password)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 res.send(response.data);
@@ -16,10 +16,10 @@ module.exports = {
                 res.send(response.data);
             });
     },
-    addUserList: function addUserList(req, res, mysql_conn) {
+    addUserList: async function addUserList(req, res, mysql_conn) {
         let id = req.id;
         var body = req.body;
-        UserService.addUserList(mysql_conn, id, body)
+        await UserService.addUserList(mysql_conn, id, body)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 res.send(response);
@@ -29,9 +29,9 @@ module.exports = {
                 res.send(response);
             });
     },
-    destroyUser: function destroyUser(req, res, mysql_conn) {
+    destroyUser: async function destroyUser(req, res, mysql_conn) {
         let id = req.id;
-        UserService.destroyUser(id, mysql_conn)
+        await UserService.destroyUser(id, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 res.send(response);
@@ -41,12 +41,13 @@ module.exports = {
                 res.send(response);
             });
     },
-    getUser: function getUser(req, res, mysql_conn) {
+    getUser: async function getUser(req, res, mysql_conn) {
         let id = req.params.id;
-        UserService.getUser(id, mysql_conn)
+        await UserService.getUser(id, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 var data = JSON.stringify(response.data);
+                console.log(data);
                 res.send(data);
             })
             .catch(function (response) {
@@ -54,11 +55,11 @@ module.exports = {
                 res.send(response.data);
             });
     },
-    getUserLists: function getUserLists(req, res, mysql_conn) {
+    getUserLists: async function getUserLists(req, res, mysql_conn) {
         let id = req.id;
         let limit = req.limit;
         let offset = req.offset;
-        UserService.getUserLists(id, offset, limit, mysql_conn)
+        await UserService.getUserLists(id, offset, limit, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 res.send(response);
@@ -68,10 +69,10 @@ module.exports = {
                 res.send(response);
             });
     },
-    getUsers: function getUsers(req, res, mysql_conn) {
+    getUsers: async function getUsers(req, res, mysql_conn) {
         let limit = req.query.limit;
         let offset = req.query.offset;
-        UserService.getUsers(offset, limit, mysql_conn)
+        await UserService.getUsers(offset, limit, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
                 console.log("Send: %s \n\n", JSON.stringify(response));
@@ -94,19 +95,19 @@ module.exports = {
 //   //   });
 // };
 
-    updateUser: function updateUser(req, res, mysql_conn) {
-        var id = req.id;
-        var name = req.name;
-        var oldPassword = req.oldPassword;
-        var newPassword = req.newPassword;
-        UserService.updateUser(mysql_conn, id, oldPassword, name, newPassword)
+    updateUser: async function updateUser(req, res, mysql_conn) {
+        var id = req.params.id;
+        var name = req.query.name;
+        var oldPassword = req.query.oldPassword;
+        var newPassword = req.query.newPassword;
+        await UserService.updateUser(mysql_conn, id, oldPassword, name, newPassword)
             .then(function (response) {
                 res.statusCode = response.status_code;
-                res.send(response);
+                res.send(response.data);
             })
             .catch(function (response) {
                 res.statusCode = response.status_code;
-                res.send(response);
+                res.send(response.data);
             });
     }
 }
