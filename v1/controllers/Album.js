@@ -1,31 +1,36 @@
 'use strict';
 
-import AlbumService from '../service/AlbumService';
+const AlbumService = require("../service/AlbumService");
 
-class AlbumController  {
-  getAlbum(req, res, next) {
-    let id = req.params['id'].value;
-    Album.getAlbum(id)
+module.exports = {
+  getAlbum: function getAlbum(req, res, token) {
+    let id = req.params.id;
+    AlbumService.getAlbum(id, token)
         .then(function (response) {
-          utils.writeJson(res, response);
+            res.statusCode = 204;
+            console.log("Send: %s \n\n", JSON.stringify(response));
+            res.send(response);
         })
         .catch(function (response) {
-          utils.writeJson(res, response);
+            res.statusCode = 500;
+            res.send(response);
         });
-  }
-  getAlbums(req, res, next) {
-    var limit = req.swagger.params['limit'].value;
-    var search = req.swagger.params['search'].value;
-    Album.getAlbums(limit,search)
+      console.log("Send: %s \n\n"," dupa");
+  },
+  getAlbums: function getAlbums(req, res, token){
+    let limit = req.params.limit;
+    let search = req.params.search;
+    AlbumService.getAlbums(limit, search, token)
         .then(function (response) {
-          utils.writeJson(res, response);
+            res.statusCode = 204;
+            // console.log("Send: %s \n\n", JSON.stringify(response));
+            res.send(response);
         })
         .catch(function (response) {
-          utils.writeJson(res, response);
+            res.statusCode = 500;
+            res.send(response);
         });
   }
 }
 
-export {
-  AlbumController
-};
+

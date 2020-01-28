@@ -1,65 +1,82 @@
 'use strict';
-
 const request = require("request");
+let dictAlbums = {};
 
-class AlbumService {
-    constructor(token, mysql_con) {
-        this.dictAlbums = {};
-        this.token = token;
-        this.mysql = mysql_con;
-    }
-    getAlbum(id) {
+exports.getAlbum = function(id, token) {
         return new Promise(function(resolve, reject) {
-            if (!(id in this.dictAlbums)) {
-                this.mysql.query('SELECT * FROM album where ID="${id}"', function (err, result, fields) {
-                    if (err) throw err;
-                    if(result.length === 0)
-                    {
-                        let options = {
-                            url: "https://api.spotify.com/v1/albums/"+id,
-                            headers: {
-                                'Authorization': 'Bearer ' + this.token
-                            },
-                            json: true
-                        };
-                        request.get(options, function(error, response, body) {
-                            if (!error && response.statusCode === 200){
-                                // let album = ;
-                                // console.log(artists[0].name);
-                                // main_res.writeHead(200,
-                                //     {"Content-Type": "text/plain"});
-                                // main_res.end(main_req.url+" Loaded\n");
-                            }
+            if(!dictAlbums)
+                dictAlbums = {};
 
-                        });
+            if(!(id in dictAlbums)){
+
+                let options = {
+                    url: "https://api.spotify.com/v1/albums/"+id,
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    json: true
+                };
+                request.get(options, function(error, response, body) {
+                    if(error)
+                        reject(error);
+                    if (response.statusCode === 200){
+                        dictAlbums[id] = body;
+                        resolve(body);
                     }
-                    console.log(result[0]);
+                    else{
+                        resolve({});
+                    }
                 });
-                resolve();
-            } else {
-                resolve(this.dictAlbums[id]);
             }
+            else
+                resolve(dictAlbums[id]);
         });
-    }
-    getAlbums(limit,search) {
+    };
+
+//=====================================================
+// {
+//     "album_type":"album",
+//     "artists":[],
+//     "available_markets":[],
+//     "copyrights":[],
+//     "external_ids":{},
+//     "external_urls":{},
+//     "genres":[],
+//     "href":"https://api.spotify.com/v1/albums/0tKX7BLXiiRgXUKYdJzjEz",
+//     "id":"0tKX7BLXiiRgXUKYdJzjEz",
+//     "images":[],
+//     "label":"TenThousand Projects, LLC",
+//     "name":"A Love Letter To You 4",
+//     "popularity":88,
+//     "release_date":"2019-11-22",
+//     "release_date_precision":"day",
+//     "total_tracks":21,
+//     "tracks":{},
+//     "type":"album",
+//     "uri":"spotify:album:0tKX7BLXiiRgXUKYdJzjEz"
+// }
+
+exports.getAlbums = function(limit=20,search='a', token) {
         return new Promise(function(resolve, reject) {
-            var examples = {};
-            examples['application/json'] = [ {
-                "name" : "name",
-                "id" : "id"
-            }, {
-                "name" : "name",
-                "id" : "id"
-            } ];
-            if (Object.keys(examples).length > 0) {
-                resolve(examples[Object.keys(examples)[0]]);
-            } else {
-                resolve();
-            }
+            let options = {
+                url: 'https://api.spotify.com/v1/search?' +
+                    'q='+ search +
+                    '&type=album' +
+                    '&limit=' + limit || "20" ,
+                headers: {
+                    'Authorization': 'Bearer ' + token
+                },
+                json: true
+            };
+            request.get(options, function(error, response, body) {
+                if (error){
+                    return reject(error);
+                } else if (response.statusCode === 200){
+                    return resolve(body.albums.items);
+                }else {
+                    return resolve([]);
+                }
+            });
         });
     }
-};
-export {
-    AlbumService
-};
 
