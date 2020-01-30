@@ -34,7 +34,7 @@ exports.getTrack = function(id, token) {
   });
 }
 
-exports.getTracks = function(limit,search, token) {
+exports.getTracks = function(limit=20,search='a', token) {
   return new Promise(function(resolve, reject) {
     let options = {
       url: 'https://api.spotify.com/v1/search?' +

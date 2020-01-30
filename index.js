@@ -3,11 +3,13 @@
 const express = require("express");
 const request = require('request'); // "Request" library
 const mysql = require('mysql');
+const bodyParser = require('body-parser');
 
 const AlbumController = require("./v1/controllers/Album");
 const ArtistController = require("./v1/controllers/Artist");
 const TrackController = require("./v1/controllers/Track");
 const UserController = require("./v1/controllers/User");
+const ListController = require("./v1/controllers/List");
 
 let mysql_con, token;
 
@@ -59,6 +61,7 @@ function Initialize(){
 
     //============================= services initialization, set endpoints
     const app = express();
+    app.use(bodyParser.json());
     const userPath = "/user",
         albumPath = "/album",
         artistPath = "/artist",
@@ -111,8 +114,46 @@ function Initialize(){
     app.delete('/v1'+userPath+'/:id', function (req, res) {
         UserController.destroyUser(req, res, mysql_con);
     });
+    //=======list
+    app.get('/v1'+userPath+'/:id'+listPath, function (req, res) {
+        ListController.getUserLists(req, res, mysql_con);
+    });
 
+    app.post('/v1'+userPath+'/:id'+listPath, function (req, res) {
+        ListController.addUserList(req, res, mysql_con);
+    });
 
+    app.get('/v1'+userPath+'/:uid'+listPath+'/:id', function (req, res) {
+        ListController.getList(req, res, mysql_con);
+    });
+
+    app.put('/v1'+userPath+'/:uid'+listPath+'/:id', function (req, res) {
+        ListController.updateList(req, res, mysql_con);
+    });
+
+    app.delete('/v1'+userPath+'/:uid'+listPath+'/:id', function (req, res) {
+        ListController.destroyList(req, res, mysql_con);
+    });
+
+    app.get('/v1'+userPath+'/:uid'+listPath+'/:lid'+trackPath, function (req, res) {
+        ListController.getListTracks(req, res, mysql_con, token);
+    });
+
+    app.put('/v1'+userPath+'/:uid'+listPath+'/:lid'+trackPath+'/:tid', function (req, res) {
+        ListController.addTrackToList(req, res, mysql_con, token);
+    });
+
+    app.delete('/v1'+userPath+'/:uid'+listPath+'/:lid'+trackPath+'/:tid', function (req, res) {
+        ListController.deleteTrackFromList(req, res, mysql_con);
+    });
+
+    app.put('/v1'+userPath+'/:uid'+listPath+'/:lid'+userPath+'/:sid', function (req, res) {
+        ListController.shareListWithUser(req, res, mysql_con);
+    });
+
+    app.delete('/v1'+userPath+'/:uid'+listPath+'/:lid'+userPath+'/:sid', function (req, res) {
+        ListController.unshareListWithUser(req, res, mysql_con);
+    });
 
 
     //================ start server

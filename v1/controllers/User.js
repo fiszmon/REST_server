@@ -30,7 +30,7 @@ module.exports = {
             });
     },
     destroyUser: async function destroyUser(req, res, mysql_conn) {
-        let id = req.id;
+        let id = req.params.id;
         await UserService.destroyUser(id, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
@@ -46,27 +46,11 @@ module.exports = {
         await UserService.getUser(id, mysql_conn)
             .then(function (response) {
                 res.statusCode = response.status_code;
-                var data = JSON.stringify(response.data);
-                console.log(data);
-                res.send(data);
+                res.send(response.data);
             })
             .catch(function (response) {
                 res.statusCode = response.status_code;
                 res.send(response.data);
-            });
-    },
-    getUserLists: async function getUserLists(req, res, mysql_conn) {
-        let id = req.id;
-        let limit = req.limit;
-        let offset = req.offset;
-        await UserService.getUserLists(id, offset, limit, mysql_conn)
-            .then(function (response) {
-                res.statusCode = response.status_code;
-                res.send(response);
-            })
-            .catch(function (response) {
-                res.statusCode = response.status_code;
-                res.send(response);
             });
     },
     getUsers: async function getUsers(req, res, mysql_conn) {
